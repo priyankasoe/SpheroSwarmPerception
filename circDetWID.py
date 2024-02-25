@@ -3,7 +3,7 @@ import math
 import cv2 as cv
 import numpy as np
 
-videoCapture = cv.VideoCapture("SpheroMiniTest3.mp4")  # 0 is the default camera (Mac in-built)
+videoCapture = cv.VideoCapture("SpheroMiniTest5.mp4")  # 0 is the default camera (Mac in-built)
 
 prev_coords = None
 num_circles = 2
