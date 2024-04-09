@@ -1,63 +1,45 @@
 import cv2
 import numpy as np
 
-# Read image.
-img = cv2.imread('sphero4.jpg', cv2.IMREAD_COLOR)
+# Read video.
+cap = cv2.VideoCapture('Vid1.mp4')
 
-# Convert to grayscale.
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+while cap.isOpened():
+    # Read a frame from the video.
+    ret, frame = cap.read()
+    if not ret:
+        break  # Break the loop if no frame is read.
 
-# Blur using 3 * 3 kernel.
-gray_blurred = cv2.blur(gray, (3, 3))
+    # Convert the frame to grayscale.
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-# Apply Hough transform on the blurred image.
-detected_circles = cv2.HoughCircles(gray_blurred,
-                                    cv2.HOUGH_GRADIENT, 1, 400, param1=50,
-                                    param2=30, minRadius=450, maxRadius=500)
+    # Threshold the gray image to create a binary mask of white regions (balls).
+    _, thresholded = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
 
-# Draw circles that are detected.
-if detected_circles is not None:
+    # Find contours in the binary mask.
+    contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Convert the circle parameters a, b and r to integers.
-    detected_circles = np.uint16(np.around(detected_circles))
-    print(detected_circles)
+    # Iterate through detected contours to find circles.
+    for contour in contours:
+        # Approximate the contour to a polygon to get the center and radius of the enclosing circle.
+        (x, y), radius = cv2.minEnclosingCircle(contour)
+        center = (int(x), int(y))
+        radius = int(radius)
 
-    first_circle = True
-    unique_circle_x = 0
-    unique_circle_y = 0
-    unique_circle_r = 0
-    for pt in detected_circles[0, :]:
-        a, b, r = pt[0], pt[1], pt[2]
-        # if first_circle:
-        #     unique_circle_x = a  # 1406
-        #     unique_circle_y = b  # 2688
-        #     unique_circle_r = r  # 464
-        #     first_circle = False
-        #     # Draw the circumference of the circle.
-        #     cv2.circle(img, (a, b), r, (0, 255, 0), 20)
-        #     print("Hi!")
-        # else:
-        #     lower_bound_x = unique_circle_x - r  # 942
-        #     upper_bound_x = unique_circle_x + r  # 1870
-        #     lower_bound_y = unique_circle_y - r  # 2224
-        #     upper_bound_y = unique_circle_y + r  # 3152
-        #     if (a < lower_bound_x or a > upper_bound_x) or (b < lower_bound_y or b > upper_bound_y):
-        #         # 1634 < 942 or 1634 > 1870 or 1218 < 2224 or 1218 > 3152
-        #         unique_circle_x = a
-        #         unique_circle_y = b
-        #         unique_circle_r = r
-        #         # Draw the circumference of the circle.
-        #         cv2.circle(img, (a, b), r, (0, 255, 0), 20)
-        #         print("Hello to all!")
+        # Filter out small circles (noise).
+        if radius > 10:
+            # Draw the detected circle.
+            cv2.circle(frame, center, radius, (0, 255, 0), 2)
+            cv2.circle(frame, center, 1, (0, 0, 255), 1)
 
-        # Draw the circumference of the circle.
-        cv2.circle(img, (a, b), r, (0, 255, 0), 20)
+    # Display the frame with detected circles.
+    cv2.imshow("Detected Circles", frame)
 
-        # Draw a small circle (of radius 1) to show the center.
-        cv2.circle(img, (a, b), 1, (0, 0, 255), 3)
-        cv2.imshow("Detected Circle", img)
-        key = cv2.waitKey(0) & 0xFF
-        if key == ord('q'):
-            break
+    # Check for 'q' key press to exit the loop.
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
 
+# Release the video capture object and close all windows.
+cap.release()
 cv2.destroyAllWindows()
